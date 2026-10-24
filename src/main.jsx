@@ -341,7 +341,7 @@ function App() {
       try {
         await navigator.share({ title: `${data.profile.name || h} · ProofPage`, url: publicUrl });
         return;
-      } catch {}
+      } catch { }
     }
     try {
       await navigator.clipboard.writeText(publicUrl);
@@ -455,7 +455,7 @@ function App() {
               <br />
               to be seen.
             </strong>
-            <p>Publish to Neon DB and share your personal URL anywhere.</p>
+            {/* <p>Publish to Neon DB and share your personal URL anywhere.</p> */}
             <button onClick={() => navigateToPublic(data.profile.handle)}>
               View Public Page <ArrowUpRight size={14} />
             </button>
@@ -497,17 +497,17 @@ function App() {
               {view === 'dashboard'
                 ? 'Overview'
                 : view === 'projects'
-                ? 'Projects'
-                : view === 'profile'
-                ? 'Profile settings'
-                : 'Public Preview'}
+                  ? 'Projects'
+                  : view === 'profile'
+                    ? 'Profile settings'
+                    : 'Public Preview'}
             </b>
           </span>
 
           <div className="top-actions">
             {dbStatus === 'connected' ? (
               <span className="db-pill" title="Saved & Synced to Neon PostgreSQL database">
-                <span className="db-pill-dot" /> Neon DB Synced
+                <span className="db-pill-dot" />Synced
               </span>
             ) : dbStatus === 'saving' ? (
               <span className="db-pill" title="Saving changes to Neon DB">
@@ -520,8 +520,7 @@ function App() {
                 onClick={() => setAuthModal({ open: true, mode: 'login' })}
                 style={{ cursor: 'pointer' }}
               >
-                <span className="db-pill-dot" /> Local Mode (Click to Sign In)
-              </span>
+                <span className="db-pill-dot" /> Click to Sign In</span>
             )}
 
             {!user ? (
