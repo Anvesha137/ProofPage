@@ -31,6 +31,13 @@ export async function initDb() {
       handle VARCHAR(50) UNIQUE NOT NULL,
       role TEXT DEFAULT '',
       bio TEXT DEFAULT '',
+      about_text TEXT DEFAULT '',
+      skills JSONB DEFAULT '[]'::jsonb,
+      education JSONB DEFAULT '[]'::jsonb,
+      certifications JSONB DEFAULT '[]'::jsonb,
+      achievements JSONB DEFAULT '[]'::jsonb,
+      custom_sections JSONB DEFAULT '[]'::jsonb,
+      proofpaths JSONB DEFAULT '{"enabled":true,"question":"What brings you here today?","subtitle":"Select a path to explore what is most relevant to you.","branches":[]}'::jsonb,
       location TEXT DEFAULT '',
       email TEXT DEFAULT '',
       github TEXT DEFAULT '',
@@ -38,6 +45,18 @@ export async function initDb() {
       avatar TEXT DEFAULT '',
       updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
     );
+  `);
+
+  // Ensure new columns exist on already created tables
+  await sql.query(`
+    ALTER TABLE profiles
+      ADD COLUMN IF NOT EXISTS about_text TEXT DEFAULT '',
+      ADD COLUMN IF NOT EXISTS skills JSONB DEFAULT '[]'::jsonb,
+      ADD COLUMN IF NOT EXISTS education JSONB DEFAULT '[]'::jsonb,
+      ADD COLUMN IF NOT EXISTS certifications JSONB DEFAULT '[]'::jsonb,
+      ADD COLUMN IF NOT EXISTS achievements JSONB DEFAULT '[]'::jsonb,
+      ADD COLUMN IF NOT EXISTS custom_sections JSONB DEFAULT '[]'::jsonb,
+      ADD COLUMN IF NOT EXISTS proofpaths JSONB DEFAULT '{"enabled":true,"question":"What brings you here today?","subtitle":"Select a path to explore what is most relevant to you.","branches":[]}'::jsonb;
   `);
 
   await sql.query(`
@@ -80,8 +99,8 @@ export async function initDb() {
     const userId = userRes[0].id;
 
     await sql.query(
-      `INSERT INTO profiles (user_id, name, handle, role, bio, location, email, github, website, avatar)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `INSERT INTO profiles (user_id, name, handle, role, bio, location, email, github, website, avatar, about_text, skills, education, certifications, achievements, custom_sections)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13::jsonb, $14::jsonb, $15::jsonb, $16::jsonb)
        ON CONFLICT (handle) DO NOTHING`,
       [
         userId,
@@ -93,7 +112,232 @@ export async function initDb() {
         'hello@example.com',
         'https://github.com',
         'https://example.com',
-        ''
+        '',
+        'I am a full-stack engineer and product builder with 5+ years of experience crafting high-impact digital products. I specialize in scalable React applications, robust distributed backends, and performance-driven architectures.',
+        JSON.stringify(['TypeScript', 'React', 'Next.js', 'Node.js', 'PostgreSQL', 'Docker', 'AWS', 'Tailwind CSS', 'GraphQL', 'Python', 'Vite', 'Redis']),
+        JSON.stringify([
+          {
+            id: 'edu-1',
+            school: 'UC Berkeley',
+            degree: 'B.S. in Computer Science',
+            field: 'Distributed Systems & Software Engineering',
+            startYear: '2019',
+            endYear: '2023',
+            grade: '3.85 GPA',
+            description: "Dean's Honors List. Coursework in High-Performance Database Systems, Cloud Computing, and Human-Computer Interaction."
+          },
+          {
+            id: 'edu-2',
+            school: 'Stanford Online',
+            degree: 'Certificate of Specialization',
+            field: 'Cloud Infrastructure & System Design',
+            startYear: '2023',
+            endYear: '2024',
+            grade: 'Distinction',
+            description: 'Focused on distributed cache design, event-driven microservices, and serverless architectures.'
+          }
+        ]),
+        JSON.stringify([
+          {
+            id: 'cert-1',
+            name: 'AWS Certified Solutions Architect – Associate',
+            issuer: 'Amazon Web Services',
+            issueDate: '2024',
+            credentialId: 'AWS-PSA-99381',
+            credentialUrl: 'https://aws.amazon.com/certification'
+          },
+          {
+            id: 'cert-2',
+            name: 'Meta Certified Professional Front-End Engineer',
+            issuer: 'Meta',
+            issueDate: '2023',
+            credentialId: 'META-FE-48201',
+            credentialUrl: 'https://coursera.org'
+          },
+          {
+            id: 'cert-3',
+            name: 'PostgreSQL Advanced Query Tuning & Performance',
+            issuer: 'Neon & Postgres Guild',
+            issueDate: '2025',
+            credentialId: 'PG-TUN-883',
+            credentialUrl: 'https://neon.tech'
+          }
+        ]),
+        JSON.stringify([
+          {
+            id: 'ach-1',
+            title: '1st Place Winner — Global Cloud & AI Hackathon',
+            issuer: 'TechCrunch Disrupt 2025',
+            date: '2025',
+            description: 'Architected an autonomous edge-rendering pipeline for real-time web performance out of 450+ international submissions.',
+            link: 'https://techcrunch.com'
+          },
+          {
+            id: 'ach-2',
+            title: 'Open Source Contributor Recognition',
+            issuer: 'DevOpen Foundation',
+            date: '2024',
+            description: 'Reduced memory allocation overhead by 35% in high-traffic SVG/Canvas web rendering tools.',
+            link: 'https://github.com'
+          },
+          {
+            id: 'ach-3',
+            title: 'Published Technical Case Study',
+            issuer: 'Engineering Digest',
+            date: '2023',
+            description: 'Published deep dive on zero-downtime serverless database migration architectures.',
+            link: 'https://example.com'
+          }
+        ]),
+        JSON.stringify([
+          {
+            id: 'sec-resume',
+            title: 'Resume & Curriculum Vitae',
+            kicker: 'CAREER SUMMARY & EXPERIENCE',
+            icon: 'FileText',
+            description: 'Download full PDF resume or review highlighted timeline, tech leadership, and track record.',
+            buttonText: 'Download Full Resume (PDF)',
+            buttonUrl: 'https://example.com/alex-morgan-resume.pdf',
+            items: [
+              {
+                id: 'item-1',
+                title: 'Staff Full-Stack & Systems Engineer',
+                subtitle: 'Nexus Tech · San Francisco, CA',
+                date: '2023 – Present',
+                description: 'Lead engineer for microservice architecture serving 200k+ MAU. Designed low-latency PostgreSQL schemas and optimized websocket feeds.',
+                link: 'https://example.com/alex-morgan-resume.pdf'
+              },
+              {
+                id: 'item-2',
+                title: 'Senior Frontend Engineer & Design Systems',
+                subtitle: 'Hyperion Labs · Remote',
+                date: '2021 – 2023',
+                description: 'Architected company-wide React component library and reduced Core Web Vitals LCP by 40%.',
+                link: 'https://example.com/alex-morgan-resume.pdf'
+              }
+            ]
+          }
+        ])
+      ]
+    );
+
+    // Also update in case alexbuilds was created previously
+    await sql.query(
+      `UPDATE profiles
+       SET
+         about_text = COALESCE(NULLIF(about_text, ''), $1),
+         skills = CASE WHEN skills IS NULL OR jsonb_array_length(skills) = 0 THEN $2::jsonb ELSE skills END,
+         education = CASE WHEN education IS NULL OR jsonb_array_length(education) = 0 THEN $3::jsonb ELSE education END,
+         certifications = CASE WHEN certifications IS NULL OR jsonb_array_length(certifications) = 0 THEN $4::jsonb ELSE certifications END,
+         achievements = CASE WHEN achievements IS NULL OR jsonb_array_length(achievements) = 0 THEN $5::jsonb ELSE achievements END,
+         custom_sections = CASE WHEN custom_sections IS NULL OR jsonb_array_length(custom_sections) = 0 THEN $6::jsonb ELSE custom_sections END
+       WHERE handle = 'alexbuilds'`,
+      [
+        'I am a full-stack engineer and product builder with 5+ years of experience crafting high-impact digital products. I specialize in scalable React applications, robust distributed backends, and performance-driven architectures.',
+        JSON.stringify(['TypeScript', 'React', 'Next.js', 'Node.js', 'PostgreSQL', 'Docker', 'AWS', 'Tailwind CSS', 'GraphQL', 'Python', 'Vite', 'Redis']),
+        JSON.stringify([
+          {
+            id: 'edu-1',
+            school: 'UC Berkeley',
+            degree: 'B.S. in Computer Science',
+            field: 'Distributed Systems & Software Engineering',
+            startYear: '2019',
+            endYear: '2023',
+            grade: '3.85 GPA',
+            description: "Dean's Honors List. Coursework in High-Performance Database Systems, Cloud Computing, and Human-Computer Interaction."
+          },
+          {
+            id: 'edu-2',
+            school: 'Stanford Online',
+            degree: 'Certificate of Specialization',
+            field: 'Cloud Infrastructure & System Design',
+            startYear: '2023',
+            endYear: '2024',
+            grade: 'Distinction',
+            description: 'Focused on distributed cache design, event-driven microservices, and serverless architectures.'
+          }
+        ]),
+        JSON.stringify([
+          {
+            id: 'cert-1',
+            name: 'AWS Certified Solutions Architect – Associate',
+            issuer: 'Amazon Web Services',
+            issueDate: '2024',
+            credentialId: 'AWS-PSA-99381',
+            credentialUrl: 'https://aws.amazon.com/certification'
+          },
+          {
+            id: 'cert-2',
+            name: 'Meta Certified Professional Front-End Engineer',
+            issuer: 'Meta',
+            issueDate: '2023',
+            credentialId: 'META-FE-48201',
+            credentialUrl: 'https://coursera.org'
+          },
+          {
+            id: 'cert-3',
+            name: 'PostgreSQL Advanced Query Tuning & Performance',
+            issuer: 'Neon & Postgres Guild',
+            issueDate: '2025',
+            credentialId: 'PG-TUN-883',
+            credentialUrl: 'https://neon.tech'
+          }
+        ]),
+        JSON.stringify([
+          {
+            id: 'ach-1',
+            title: '1st Place Winner — Global Cloud & AI Hackathon',
+            issuer: 'TechCrunch Disrupt 2025',
+            date: '2025',
+            description: 'Architected an autonomous edge-rendering pipeline for real-time web performance out of 450+ international submissions.',
+            link: 'https://techcrunch.com'
+          },
+          {
+            id: 'ach-2',
+            title: 'Open Source Contributor Recognition',
+            issuer: 'DevOpen Foundation',
+            date: '2024',
+            description: 'Reduced memory allocation overhead by 35% in high-traffic SVG/Canvas web rendering tools.',
+            link: 'https://github.com'
+          },
+          {
+            id: 'ach-3',
+            title: 'Published Technical Case Study',
+            issuer: 'Engineering Digest',
+            date: '2023',
+            description: 'Published deep dive on zero-downtime serverless database migration architectures.',
+            link: 'https://example.com'
+          }
+        ]),
+        JSON.stringify([
+          {
+            id: 'sec-resume',
+            title: 'Resume & Curriculum Vitae',
+            kicker: 'CAREER SUMMARY & EXPERIENCE',
+            icon: 'FileText',
+            description: 'Download full PDF resume or review highlighted timeline, tech leadership, and track record.',
+            buttonText: 'Download Full Resume (PDF)',
+            buttonUrl: 'https://example.com/alex-morgan-resume.pdf',
+            items: [
+              {
+                id: 'item-1',
+                title: 'Staff Full-Stack & Systems Engineer',
+                subtitle: 'Nexus Tech · San Francisco, CA',
+                date: '2023 – Present',
+                description: 'Lead engineer for microservice architecture serving 200k+ MAU. Designed low-latency PostgreSQL schemas and optimized websocket feeds.',
+                link: 'https://example.com/alex-morgan-resume.pdf'
+              },
+              {
+                id: 'item-2',
+                title: 'Senior Frontend Engineer & Design Systems',
+                subtitle: 'Hyperion Labs · Remote',
+                date: '2021 – 2023',
+                description: 'Architected company-wide React component library and reduced Core Web Vitals LCP by 40%.',
+                link: 'https://example.com/alex-morgan-resume.pdf'
+              }
+            ]
+          }
+        ])
       ]
     );
 
@@ -196,6 +440,149 @@ export async function initDb() {
       );
     }
   }
+
+  // Ensure alexbuilds has default rich portfolio data if currently empty
+  await sql.query(
+    `UPDATE profiles
+     SET
+       about_text = CASE WHEN about_text IS NULL OR about_text = '' THEN $1 ELSE about_text END,
+       skills = CASE WHEN skills IS NULL OR jsonb_array_length(skills) = 0 THEN $2::jsonb ELSE skills END,
+       education = CASE WHEN education IS NULL OR jsonb_array_length(education) = 0 THEN $3::jsonb ELSE education END,
+       certifications = CASE WHEN certifications IS NULL OR jsonb_array_length(certifications) = 0 THEN $4::jsonb ELSE certifications END,
+       achievements = CASE WHEN achievements IS NULL OR jsonb_array_length(achievements) = 0 THEN $5::jsonb ELSE achievements END,
+       proofpaths = CASE WHEN proofpaths IS NULL OR jsonb_array_length(proofpaths->'branches') = 0 THEN $6::jsonb ELSE proofpaths END,
+       custom_sections = CASE WHEN custom_sections IS NULL OR jsonb_array_length(custom_sections) = 0 THEN $7::jsonb ELSE custom_sections END
+     WHERE handle = 'alexbuilds'`,
+    [
+      'I am a full-stack engineer and product builder with 5+ years of experience crafting high-impact digital products. I specialize in scalable React applications, robust distributed backends, and performance-driven architectures.',
+      JSON.stringify(['TypeScript', 'React', 'Next.js', 'Node.js', 'PostgreSQL', 'Docker', 'AWS', 'Tailwind CSS', 'GraphQL', 'Python', 'Vite', 'Redis']),
+      JSON.stringify([
+        {
+          id: 'edu-1',
+          school: 'UC Berkeley',
+          degree: 'B.S. in Computer Science',
+          field: 'Distributed Systems & Software Engineering',
+          startYear: '2019',
+          endYear: '2023',
+          grade: '3.85 GPA',
+          description: "Dean's Honors List. Research focus on distributed key-value storage and high-throughput real-time APIs."
+        },
+        {
+          id: 'edu-2',
+          school: 'Stanford Online',
+          degree: 'Certificate of Specialization',
+          field: 'Cloud Infrastructure & System Design',
+          startYear: '2023',
+          endYear: '2024',
+          grade: 'Distinction',
+          description: 'Focused on distributed cache design, event-driven microservices, and serverless architectures.'
+        }
+      ]),
+      JSON.stringify([
+        {
+          id: 'cert-1',
+          name: 'AWS Certified Solutions Architect – Associate',
+          issuer: 'Amazon Web Services',
+          issueDate: '2024',
+          credentialId: 'AWS-PSA-99381',
+          credentialUrl: 'https://aws.amazon.com/certification'
+        },
+        {
+          id: 'cert-2',
+          name: 'Meta Certified Professional Front-End Engineer',
+          issuer: 'Meta',
+          issueDate: '2023',
+          credentialId: 'META-FE-48201',
+          credentialUrl: 'https://coursera.org'
+        },
+        {
+          id: 'cert-3',
+          name: 'PostgreSQL Advanced Query Tuning & Performance',
+          issuer: 'Neon & Postgres Guild',
+          issueDate: '2025',
+          credentialId: 'PG-TUN-883',
+          credentialUrl: 'https://neon.tech'
+        }
+      ]),
+      JSON.stringify([
+        {
+          id: 'ach-1',
+          title: '1st Place Winner — Global Cloud & AI Hackathon',
+          issuer: 'TechCrunch Disrupt 2025',
+          date: '2025',
+          description: 'Architected an autonomous edge-rendering pipeline for real-time web performance out of 450+ international submissions.',
+          link: 'https://techcrunch.com'
+        },
+        {
+          id: 'ach-2',
+          title: 'Open Source Contributor Recognition',
+          issuer: 'DevOpen Foundation',
+          date: '2024',
+          description: 'Reduced memory allocation overhead by 35% in high-traffic SVG/Canvas web rendering tools.',
+          link: 'https://github.com'
+        },
+        {
+          id: 'ach-3',
+          title: 'Published Technical Case Study',
+          issuer: 'Engineering Digest',
+          date: '2023',
+          description: 'Published deep dive on zero-downtime serverless database migration architectures.',
+          link: 'https://example.com'
+        }
+      ]),
+      JSON.stringify({
+        enabled: true,
+        question: 'What brings you here today?',
+        subtitle: 'Select a path to explore what is most relevant to you, or view the full page.',
+        branches: [
+          {
+            id: 'branch-work',
+            label: 'I want to work with you',
+            subtitle: 'See services, experience, and flagship projects',
+            icon: 'Briefcase',
+            color: 'blue',
+            sections: ['projects', 'about', 'contact']
+          },
+          {
+            id: 'branch-proof',
+            label: "Show me what you've done",
+            subtitle: 'Explore case studies, metrics, certifications & proof',
+            icon: 'Trophy',
+            color: 'amber',
+            sections: ['projects', 'certifications', 'achievements']
+          },
+          {
+            id: 'branch-story',
+            label: "I'm just exploring / Know me better",
+            subtitle: 'Discover the person, story, background & education',
+            icon: 'User',
+            color: 'purple',
+            sections: ['about', 'education', 'achievements']
+          },
+          {
+            id: 'branch-connect',
+            label: "Let's connect",
+            subtitle: 'Find socials, communities, and ways to reach out',
+            icon: 'Mail',
+            color: 'green',
+            sections: ['contact', 'about']
+          }
+        ]
+      }),
+      JSON.stringify([
+        {
+          id: 'sec-resume',
+          title: 'Resume & Curriculum Vitae',
+          kicker: 'CAREER SUMMARY & EXPERIENCE',
+          icon: 'FileText',
+          description: 'Download full PDF resume or review highlighted timeline, tech leadership, and track record.',
+          buttonText: 'Download Full Resume (PDF)',
+          buttonUrl: 'https://example.com/alex-morgan-resume.pdf',
+          content: '• 5+ years building and scaling distributed React, Next.js, and Node.js applications\n• Led engineering of zero-downtime microservices serving 200k+ MAU\n• Deep expertise in PostgreSQL optimization, state management, and real-time websockets'
+        }
+      ])
+    ]
+  );
 
   isInitialized = true;
 }

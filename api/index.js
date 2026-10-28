@@ -53,6 +53,85 @@ function authenticate(req) {
   }
 }
 
+function generateUniqueCode(len = 10) {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let res = '';
+  for (let i = 0; i < len; i++) {
+    res += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return res;
+}
+
+function formatProfile(p) {
+  if (!p) return null;
+  const parseJsonSafe = (val, def = []) => {
+    if (!val) return def;
+    if (typeof val === 'object') return val;
+    try {
+      return JSON.parse(val);
+    } catch {
+      return def;
+    }
+  };
+
+  return {
+    name: p.name || '',
+    handle: p.handle || '',
+    role: p.role || '',
+    bio: p.bio || '',
+    about_text: p.about_text || '',
+    location: p.location || '',
+    email: p.email || '',
+    github: p.github || '',
+    website: p.website || '',
+    avatar: p.avatar || '',
+    skills: parseJsonSafe(p.skills, []),
+    education: parseJsonSafe(p.education, []),
+    certifications: parseJsonSafe(p.certifications, []),
+    achievements: parseJsonSafe(p.achievements, []),
+    custom_sections: parseJsonSafe(p.custom_sections, []),
+    proofpaths: parseJsonSafe(p.proofpaths, {
+      enabled: true,
+      question: 'What brings you here today?',
+      subtitle: 'Select a path to explore what is most relevant to you, or view the full page.',
+      branches: [
+        {
+          id: 'branch-work',
+          label: 'I want to work with you',
+          subtitle: 'See services, experience, and flagship projects',
+          icon: 'Briefcase',
+          color: 'blue',
+          sections: ['projects', 'about', 'contact']
+        },
+        {
+          id: 'branch-proof',
+          label: "Show me what you've done",
+          subtitle: 'Explore case studies, metrics, certifications & proof',
+          icon: 'Trophy',
+          color: 'amber',
+          sections: ['projects', 'certifications', 'achievements']
+        },
+        {
+          id: 'branch-story',
+          label: "I'm just exploring / Know me better",
+          subtitle: 'Discover the person, story, background & education',
+          icon: 'User',
+          color: 'purple',
+          sections: ['about', 'education', 'achievements']
+        },
+        {
+          id: 'branch-connect',
+          label: "Let's connect",
+          subtitle: 'Find socials, communities, and ways to reach out',
+          icon: 'Mail',
+          color: 'green',
+          sections: ['contact', 'about']
+        }
+      ]
+    })
+  };
+}
+
 export default async function handler(req, res) {
   // CORS Preflight
   if (req.method === 'OPTIONS') {
@@ -112,17 +191,7 @@ export default async function handler(req, res) {
       }));
 
       return sendJson(res, 200, {
-        profile: {
-          name: profile.name,
-          handle: profile.handle,
-          role: profile.role,
-          bio: profile.bio,
-          location: profile.location,
-          email: profile.email,
-          github: profile.github,
-          website: profile.website,
-          avatar: profile.avatar
-        },
+        profile: formatProfile(profile),
         projects
       });
     }
@@ -169,21 +238,72 @@ export default async function handler(req, res) {
 
       // Create initial profile
       const displayName = username.charAt(0).toUpperCase() + username.slice(1);
+      const customRole = body.profile?.role || (body.persona ? `${body.persona}` : 'Full-stack builder');
+      const customBio = body.profile?.bio || `Hi, I'm ${displayName}. I design and build high-quality digital products.`;
+      const customAbout = body.profile?.about_text || body.selfDescription || `I am an engineer and creator dedicated to building reliable, high-performance web products.`;
+      const customSkills = body.profile?.skills || ['React', 'TypeScript', 'Node.js', 'PostgreSQL', 'CSS'];
+      const customProofpaths = body.profile?.proofpaths || {
+        enabled: true,
+        question: body.openingQuestion || 'What brings you here today?',
+        subtitle: 'Select a path to explore what is most relevant to you, or view the full page.',
+        branches: body.branches || [
+          {
+            id: 'branch-work',
+            label: 'I want to work with you',
+            subtitle: 'See services, experience, and flagship projects',
+            icon: 'Briefcase',
+            color: 'blue',
+            sections: ['projects', 'about', 'contact']
+          },
+          {
+            id: 'branch-proof',
+            label: "Show me what you've done",
+            subtitle: 'Explore case studies, metrics, certifications & proof',
+            icon: 'Trophy',
+            color: 'amber',
+            sections: ['projects', 'certifications', 'achievements']
+          },
+          {
+            id: 'branch-story',
+            label: "I'm just exploring / Know me better",
+            subtitle: 'Discover the person, story, background & education',
+            icon: 'User',
+            color: 'purple',
+            sections: ['about', 'education', 'achievements']
+          },
+          {
+            id: 'branch-connect',
+            label: "Let's connect",
+            subtitle: 'Find socials, communities, and ways to reach out',
+            icon: 'Mail',
+            color: 'green',
+            sections: ['contact', 'about']
+          }
+        ]
+      };
+
       const profileRes = await sql.query(
-        `INSERT INTO profiles (user_id, name, handle, role, bio, location, email, github, website, avatar)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-         RETURNING name, handle, role, bio, location, email, github, website, avatar`,
+        `INSERT INTO profiles (user_id, name, handle, role, bio, location, email, github, website, avatar, about_text, skills, education, certifications, achievements, proofpaths, custom_sections)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13::jsonb, $14::jsonb, $15::jsonb, $16::jsonb, $17::jsonb)
+         RETURNING *`,
         [
           user.id,
           displayName,
           username,
-          'Full-stack builder',
-          `Hi, I'm ${displayName}. I design and build high-quality digital products.`,
+          customRole,
+          customBio,
           'Remote',
           email,
           '',
           '',
-          ''
+          '',
+          customAbout,
+          JSON.stringify(customSkills),
+          JSON.stringify(body.profile?.education || []),
+          JSON.stringify(body.profile?.certifications || []),
+          JSON.stringify(body.profile?.achievements || []),
+          JSON.stringify(customProofpaths),
+          JSON.stringify(body.profile?.custom_sections || [])
         ]
       );
 
@@ -249,7 +369,7 @@ export default async function handler(req, res) {
       return sendJson(res, 201, {
         token,
         user: { id: user.id, username: user.username, email: user.email },
-        profile: profileRes[0],
+        profile: formatProfile(profileRes[0]),
         projects: [
           {
             ...starterProject,
@@ -322,17 +442,7 @@ export default async function handler(req, res) {
       return sendJson(res, 200, {
         token,
         user: { id: user.id, username: user.username, email: user.email },
-        profile: {
-          name: profile.name,
-          handle: profile.handle,
-          role: profile.role,
-          bio: profile.bio,
-          location: profile.location,
-          email: profile.email,
-          github: profile.github,
-          website: profile.website,
-          avatar: profile.avatar
-        },
+        profile: formatProfile(profile),
         projects
       });
     }
@@ -376,17 +486,7 @@ export default async function handler(req, res) {
 
       return sendJson(res, 200, {
         user,
-        profile: {
-          name: profile.name,
-          handle: profile.handle,
-          role: profile.role,
-          bio: profile.bio,
-          location: profile.location,
-          email: profile.email,
-          github: profile.github,
-          website: profile.website,
-          avatar: profile.avatar
-        },
+        profile: formatProfile(profile),
         projects
       });
     }
@@ -420,8 +520,8 @@ export default async function handler(req, res) {
 
       // Upsert profile
       await sql.query(
-        `INSERT INTO profiles (user_id, name, handle, role, bio, location, email, github, website, avatar, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+        `INSERT INTO profiles (user_id, name, handle, role, bio, location, email, github, website, avatar, about_text, skills, education, certifications, achievements, proofpaths, custom_sections, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13::jsonb, $14::jsonb, $15::jsonb, $16::jsonb, $17::jsonb, NOW())
          ON CONFLICT (user_id) DO UPDATE SET
            name = EXCLUDED.name,
            handle = EXCLUDED.handle,
@@ -432,6 +532,13 @@ export default async function handler(req, res) {
            github = EXCLUDED.github,
            website = EXCLUDED.website,
            avatar = EXCLUDED.avatar,
+           about_text = EXCLUDED.about_text,
+           skills = EXCLUDED.skills,
+           education = EXCLUDED.education,
+           certifications = EXCLUDED.certifications,
+           achievements = EXCLUDED.achievements,
+           proofpaths = EXCLUDED.proofpaths,
+           custom_sections = EXCLUDED.custom_sections,
            updated_at = NOW()`,
         [
           auth.userId,
@@ -443,7 +550,14 @@ export default async function handler(req, res) {
           profile.email || '',
           profile.github || '',
           profile.website || '',
-          profile.avatar || ''
+          profile.avatar || '',
+          profile.about_text || '',
+          JSON.stringify(profile.skills || []),
+          JSON.stringify(profile.education || []),
+          JSON.stringify(profile.certifications || []),
+          JSON.stringify(profile.achievements || []),
+          JSON.stringify(profile.proofpaths || { enabled: true, question: 'What brings you here today?', subtitle: 'Select a path to explore what is most relevant to you.', branches: [] }),
+          JSON.stringify(profile.custom_sections || [])
         ]
       );
 
